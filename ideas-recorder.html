@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#04040a">
+<title>AIGA Ideas</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    height: 100%; background: #04040a;
+    color: #f1f5f9; font-family: -apple-system, 'Inter', sans-serif;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+  .app {
+    width: 100%; max-width: 360px; padding: 40px 24px;
+    display: flex; flex-direction: column; align-items: center; gap: 32px;
+    text-align: center;
+  }
+  .logo {
+    font-size: 13px; font-weight: 800; letter-spacing: 4px;
+    background: linear-gradient(135deg, #818cf8, #22d3ee);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .title { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+  .sub { font-size: 14px; color: #64748b; line-height: 1.6; }
+
+  /* Record button */
+  .record-wrap {
+    position: relative; display: flex; align-items: center; justify-content: center;
+  }
+  .record-ring {
+    position: absolute; width: 120px; height: 120px; border-radius: 50%;
+    border: 2px solid rgba(99,102,241,0.3);
+    animation: none;
+  }
+  .record-ring.pulse {
+    animation: ring-pulse 1.2s ease-out infinite;
+  }
+  @keyframes ring-pulse {
+    0% { transform: scale(1); opacity: .8; }
+    100% { transform: scale(1.8); opacity: 0; }
+  }
+  .record-btn {
+    width: 88px; height: 88px; border-radius: 50%;
+    background: linear-gradient(135deg, #4f46e5, #06b6d4);
+    border: none; cursor: pointer; position: relative; z-index: 1;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px; transition: transform .15s, box-shadow .15s;
+    box-shadow: 0 0 40px rgba(79,70,229,0.4);
+    -webkit-user-select: none; user-select: none;
+  }
+  .record-btn:active { transform: scale(.93); }
+  .record-btn.recording {
+    background: linear-gradient(135deg, #ef4444, #f97316);
+    box-shadow: 0 0 40px rgba(239,68,68,0.5);
+  }
+
+  /* Timer */
+  .timer {
+    font-size: 36px; font-weight: 300; letter-spacing: 2px;
+    font-variant-numeric: tabular-nums; color: #94a3b8;
+    min-height: 44px;
+  }
+  .timer.active { color: #f1f5f9; }
+
+  /* Waveform */
+  .waveform {
+    display: flex; align-items: center; gap: 3px;
+    height: 40px; opacity: 0; transition: opacity .3s;
+  }
+  .waveform.visible { opacity: 1; }
+  .wave-bar {
+    width: 3px; border-radius: 2px;
+    background: linear-gradient(to top, #4f46e5, #06b6d4);
+    height: 4px; animation: none;
+  }
+  .waveform.active .wave-bar {
+    animation: wave 0.8s ease-in-out infinite alternate;
+  }
+  .wave-bar:nth-child(1) { animation-delay: 0s; }
+  .wave-bar:nth-child(2) { animation-delay: 0.08s; }
+  .wave-bar:nth-child(3) { animation-delay: 0.16s; }
+  .wave-bar:nth-child(4) { animation-delay: 0.24s; }
+  .wave-bar:nth-child(5) { animation-delay: 0.32s; }
+  .wave-bar:nth-child(6) { animation-delay: 0.24s; }
+  .wave-bar:nth-child(7) { animation-delay: 0.16s; }
+  .wave-bar:nth-child(8) { animation-delay: 0.08s; }
+  .wave-bar:nth-child(9) { animation-delay: 0s; }
+  @keyframes wave {
+    from { height: 4px; }
+    to { height: 32px; }
+  }
+
+  /* Status */
+  .status {
+    font-size: 14px; font-weight: 500; color: #64748b;
+    min-height: 20px; transition: color .3s;
+  }
+  .status.recording { color: #f87171; }
+  .status.processing { color: #818cf8; }
+  .status.success { color: #34d399; }
+  .status.error { color: #f87171; }
+
+  /* Send button */
+  .send-btn {
+    display: none; width: 100%; padding: 16px;
+    background: linear-gradient(135deg, #4f46e5, #06b6d4);
+    border: none; border-radius: 14px; color: #fff;
+    font-size: 16px; font-weight: 700; cursor: pointer;
+    transition: opacity .2s, transform .2s;
+    box-shadow: 0 4px 20px rgba(79,70,229,0.35);
+  }
+  .send-btn:active { opacity: .88; transform: scale(.98); }
+  .send-btn.visible { display: block; }
+
+  .cancel-btn {
+    display: none; font-size: 13px; color: #475569;
+    background: none; border: none; cursor: pointer; padding: 8px;
+  }
+  .cancel-btn.visible { display: block; }
+
+  .hint {
+    font-size: 12px; color: #334155; line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="logo">AIGA</div>
+
+  <div>
+    <div class="title">💡 Capture an Idea</div>
+    <div class="sub" style="margin-top:8px;">Press and record. Your idea will be<br>transcribed and saved automatically.</div>
+  </div>
+
+  <div class="waveform" id="waveform">
+    <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+    <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+    <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+  </div>
+
+  <div class="record-wrap">
+    <div class="record-ring" id="recordRing"></div>
+    <button class="record-btn" id="recordBtn" onclick="toggleRecord()">🎙️</button>
+  </div>
+
+  <div class="timer" id="timer">0:00</div>
+  <div class="status" id="status">Tap to record</div>
+
+  <button class="send-btn" id="sendBtn" onclick="sendIdea()">✨ Save this Idea</button>
+  <button class="cancel-btn" id="cancelBtn" onclick="cancelRecording()">Discard</button>
+
+  <div class="hint" id="hint">Add to your home screen for quick access</div>
+</div>
+
+<script>
+// ─── CONFIG ───
+// Replace with your n8n webhook URL after setup
+const WEBHOOK_URL = 'https://YOUR_N8N_URL/webhook/voice-idea';
+
+// ─── STATE ───
+let mediaRecorder = null;
+let audioChunks = [];
+let audioBlob = null;
+let timerInterval = null;
+let seconds = 0;
+let isRecording = false;
+let stream = null;
+
+// ─── UI REFS ───
+const recordBtn = document.getElementById('recordBtn');
+const recordRing = document.getElementById('recordRing');
+const timer = document.getElementById('timer');
+const status = document.getElementById('status');
+const sendBtn = document.getElementById('sendBtn');
+const cancelBtn = document.getElementById('cancelBtn');
+const waveform = document.getElementById('waveform');
+const hint = document.getElementById('hint');
+
+function setStatus(text, type) {
+  status.textContent = text;
+  status.className = 'status ' + (type || '');
+}
+
+function formatTime(s) {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m}:${sec.toString().padStart(2,'0')}`;
+}
+
+async function toggleRecord() {
+  if (isRecording) {
+    stopRecording();
+  } else {
+    await startRecording();
+  }
+}
+
+async function startRecording() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch(e) {
+    setStatus('Microphone access denied', 'error');
+    return;
+  }
+
+  audioChunks = [];
+  audioBlob = null;
+
+  // Prefer webm, fallback to mp4 (iOS)
+  const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+  mediaRecorder = new MediaRecorder(stream, { mimeType });
+
+  mediaRecorder.ondataavailable = e => {
+    if (e.data.size > 0) audioChunks.push(e.data);
+  };
+
+  mediaRecorder.onstop = () => {
+    audioBlob = new Blob(audioChunks, { type: mimeType });
+    stream.getTracks().forEach(t => t.stop());
+    showPreview();
+  };
+
+  mediaRecorder.start(100);
+  isRecording = true;
+
+  // UI
+  recordBtn.classList.add('recording');
+  recordBtn.textContent = '⏹';
+  recordRing.classList.add('pulse');
+  waveform.classList.add('visible', 'active');
+  sendBtn.classList.remove('visible');
+  cancelBtn.classList.remove('visible');
+  hint.style.display = 'none';
+  setStatus('Recording…', 'recording');
+
+  // Timer
+  seconds = 0;
+  timer.textContent = '0:00';
+  timer.classList.add('active');
+  timerInterval = setInterval(() => {
+    seconds++;
+    timer.textContent = formatTime(seconds);
+    if (seconds >= 300) stopRecording(); // 5min max
+  }, 1000);
+}
+
+function stopRecording() {
+  if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
+  mediaRecorder.stop();
+  isRecording = false;
+  clearInterval(timerInterval);
+
+  // UI reset
+  recordBtn.classList.remove('recording');
+  recordBtn.textContent = '🎙️';
+  recordRing.classList.remove('pulse');
+  waveform.classList.remove('active');
+  timer.classList.remove('active');
+  setStatus('Ready to save', 'processing');
+}
+
+function showPreview() {
+  sendBtn.classList.add('visible');
+  cancelBtn.classList.add('visible');
+  waveform.classList.remove('active');
+  setStatus(`${formatTime(seconds)} recorded — ready to save`, '');
+}
+
+function cancelRecording() {
+  audioBlob = null;
+  audioChunks = [];
+  sendBtn.classList.remove('visible');
+  cancelBtn.classList.remove('visible');
+  waveform.classList.remove('visible');
+  timer.textContent = '0:00';
+  hint.style.display = '';
+  setStatus('Tap to record', '');
+}
+
+async function sendIdea() {
+  if (!audioBlob) return;
+
+  sendBtn.disabled = true;
+  sendBtn.textContent = '⏳ Sending…';
+  setStatus('Uploading & transcribing…', 'processing');
+
+  const formData = new FormData();
+  const ext = audioBlob.type.includes('mp4') ? 'mp4' : 'webm';
+  formData.append('audio', audioBlob, `idea-${Date.now()}.${ext}`);
+  formData.append('audio_url', URL.createObjectURL(audioBlob));
+
+  try {
+    // Send audio directly as binary to webhook
+    const response = await fetch(WEBHOOK_URL, {
+      method: 'POST',
+      body: formData
+    });
+
+    if (response.ok) {
+      const data = await response.json().catch(() => ({}));
+      setStatus('✅ Idea saved!', 'success');
+      sendBtn.textContent = '✅ Saved!';
+      sendBtn.style.background = 'linear-gradient(135deg,#10b981,#059669)';
+      waveform.classList.remove('visible');
+      timer.textContent = '0:00';
+      hint.style.display = '';
+      hint.textContent = data.file ? `Saved as ${data.file}` : 'Idea captured successfully';
+      hint.style.color = '#34d399';
+
+      setTimeout(() => {
+        cancelBtn.classList.remove('visible');
+        sendBtn.classList.remove('visible');
+        sendBtn.disabled = false;
+        sendBtn.textContent = '✨ Save this Idea';
+        sendBtn.style.background = '';
+        setStatus('Tap to record', '');
+        hint.textContent = 'Add to your home screen for quick access';
+        hint.style.color = '';
+        audioBlob = null;
+      }, 3000);
+    } else {
+      throw new Error(`Server error: ${response.status}`);
+    }
+  } catch(e) {
+    setStatus('Error — check your connection', 'error');
+    sendBtn.textContent = '🔁 Retry';
+    sendBtn.disabled = false;
+    console.error(e);
+  }
+}
+</script>
+</body>
+</html>
